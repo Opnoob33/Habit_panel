@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Habit Panel by Ahmed</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <!-- Chart.js for Historical Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    
+    /* Box Breathing Circle Animation */
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.4; }
+      25%, 50% { transform: scale(1.35); opacity: 0.9; }
+      75% { transform: scale(1); opacity: 0.4; }
+    }
+    .animate-breathe {
+      animation: breathe 16s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- 1. AUTHENTICATION / LOGIN OVERLAY SCREEN -->
+  <div id="auth-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">
+      
+      <div class="text-center space-y-2">
+        <div class="inline-flex bg-gradient-to-br from-indigo-500 to-purple-600 p-3.5 rounded-2xl shadow-lg shadow-indigo-500/30 mb-1">
+          <i class="fa-solid fa-bolt text-white text-2xl"></i>
+        </div>
+        <h1 class="text-2xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">Habit Panel by Ahmed</h1>
+        <p class="text-xs text-slate-400 font-mono">Personal Growth & Performance Engine</p>
+      </div>
+
+      <!-- Auth Tabs Toggle -->
+      <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+        <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg bg-indigo-600 text-white transition">Login</button>
+        <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Create Account</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="auth-login-form" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Username</label>
+          <input type="text" id="login-username" required placeholder="e.g. Ahmed" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Password</label>
+          <input type="password" id="login-password" required placeholder="One-word password (e.g. 123)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-indigo-600/30">
+          Enter My Habit Panel <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="auth-register-form" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Choose Username</label>
+          <input type="text" id="reg-username" required placeholder="e.g. Ali" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Create Password</label>
+          <input type="password" id="reg-password" required placeholder="One-word password" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-emerald-600/30">
+          Register & Initialize Profile <i class="fa-solid fa-user-plus ml-1"></i>
+        </button>
+      </form>
+
+      <p id="auth-error-msg" class="text-xs text-red-400 text-center font-mono hidden"></p>
+    </div>
+  </div>
+
+
+  <!-- 2. MAIN APPLICATION CONTENT -->
+  <div id="main-app" class="flex-1 flex flex-col hidden">
+
+    <!-- READ-ONLY INSPECTION BANNER -->
+    <div id="inspect-banner" class="bg-amber-500/20 border-b border-amber-500/40 px-4 py-2.5 text-center text-xs text-amber-300 font-medium flex items-center justify-between hidden">
+      <span class="flex items-center gap-2">
+        <i class="fa-solid fa-eye text-amber-400"></i>
+        <span>Currently Inspecting Profile: <strong id="inspect-user-name" class="font-mono text-white text-sm">Ahmed</strong> (Read-Only Summary Mode)</span>
+      </span>
+      <button onclick="exitInspectionMode()" class="bg-amber-500 text-slate-950 px-3 py-1 rounded-lg text-xs font-bold hover:bg-amber-400 transition shadow">
+        <i class="fa-solid fa-arrow-left mr-1"></i> Return to My Panel
+      </button>
+    </div>
+
+    <!-- TOP HEADER NAV -->
+    <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-xl shadow-lg shadow-indigo-500/20">
+            <i class="fa-solid fa-bolt text-white text-base"></i>
+          </div>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold tracking-wider bg-gradient-to-r from-white via-slate-200 to-indigo-400 bg-clip-text text-transparent">Habit Panel by Ahmed</h1>
+          </div>
+        </div>
+
+        <!-- User Controls -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          
+          <!-- COMMUNITY / INSPECT BUTTON -->
+          <button onclick="openCommunityModal()" class="bg-slate-950 hover:bg-slate-800 border border-slate-800 text-indigo-300 text-xs px-3 py-1.5 rounded-xl font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-users text-indigo-400"></i>
+            <span>Community & Inspect Profiles</span>
+          </button>
+
+          <!-- ACTIVE USER PROFILE BADGE -->
+          <div class="flex items-center space-x-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-indigo-500/30">
+            <i class="fa-solid fa-circle-user text-indigo-400 text-xs"></i>
+            <span id="user-name-display" class="text-xs font-bold text-slate-200 font-mono">User</span>
+            <button onclick="logout()" title="Logout" class="text-[10px] bg-red-500/20 hover:bg-red-500/40 text-red-300 border border-red-500/30 px-2 py-0.5 rounded-md font-semibold transition ml-1">
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (Hidden during inspection) -->
+      <div id="main-nav-tabs" class="max-w-7xl mx-auto px-4 border-t border-slate-800/80">
+        <nav class="flex space-x-1 overflow-x-auto py-2">
+          <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+            <i class="fa-solid fa-chart-line"></i><span>Analytics</span>
+          </button>
+          <button onclick="switchTab('routine')" id="tab-routine" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-clock"></i><span>Routine Options</span>
+          </button>
+          <button onclick="switchTab('habits')" id="tab-habits" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-check-double"></i><span>Habits & Namaz</span>
+          </button>
+          <button onclick="switchTab('gym')" id="tab-gym" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-dumbbell"></i><span>Gym & Pelvic</span>
+          </button>
+          <button onclick="switchTab('diet')" id="tab-diet" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-utensils"></i><span>Budget Diet</span>
+          </button>
+          <button onclick="switchTab('study')" id="tab-study" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-headphones"></i><span>Sound Engine (16)</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+      <!-- SPECIAL INSPECTED PROFILE SINGLE VIEW -->
+      <div id="view-inspection" class="view-panel space-y-6 hidden">
+        <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-6 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <div class="flex items-center space-x-2">
+                <h2 class="text-xl font-extrabold text-white" id="inspect-profile-title">Ahmed's Profile</h2>
+                <span id="inspect-role-badge" class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase">FOUNDER</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Detailed statistical summary & performance logs for this user.</p>
+            </div>
+            <button onclick="exitInspectionMode()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+              <i class="fa-solid fa-arrow-left"></i> Return to My Panel
+            </button>
+          </div>
+
+          <!-- Inspection Stat Cards Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
+              <span class="text-[10px] uppercase font-mono text-slate-400 font-bold block">Namaz Completion</span>
+              <span class="text-2xl font-extrabold text-emerald-400 mt-1 block" id="inspect-stat-namaz">0/6</span>
+              <span class="text-[10px] text-slate-500 block mt-1">Daily Total</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
+              <span class="text-[10px] uppercase font-mono text-slate-400 font-bold block">Habit Consistency</span>
+              <span class="text-2xl font-extrabold text-indigo-400 mt-1 block" id="inspect-stat-habits">0%</span>
+              <span class="text-[10px] text-slate-500 block mt-1">Active Habits Completed</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
+              <span class="text-[10px] uppercase font-mono text-slate-400 font-bold block">Pelvic APT Sets</span>
+              <span class="text-2xl font-extrabold text-amber-400 mt-1 block" id="inspect-stat-pelvic">0/4</span>
+              <span class="text-[10px] text-slate-500 block mt-1">Daily Routine Sets</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
+              <span class="text-[10px] uppercase font-mono text-slate-400 font-bold block">STEM Study Time</span>
+              <span class="text-2xl font-extrabold text-purple-400 mt-1 block" id="inspect-stat-study">0m</span>
+              <span class="text-[10px] text-slate-500 block mt-1">Math/Physics Study</span>
+            </div>
+          </div>
+
+          <!-- Detailed Active Habits Breakdown -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-indigo-400"></i> User's Habit Status Today
+            </h3>
+            <div id="inspect-habits-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Logged Gym Sets -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-dumbbell text-amber-400"></i> User's Logged Gym Activity
+            </h3>
+            <div id="inspect-gym-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. DASHBOARD & ANALYTICS VIEW -->
+      <div id="view-dashboard" class="view-panel space-y-6">
+        
+        <!-- Date Picker Bar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-calendar-days text-indigo-400"></i>
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">View / Edit Date Entry</h3>
+              <p class="text-[10px] text-slate-500">Active Panel: <span id="active-user-subtext" class="text-indigo-400 font-bold font-mono">User</span></p>
+            </div>
+          </div>
+          <input type="date" id="history-date-picker" onchange="changeActiveDate(this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-indigo-300 font-mono focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <!-- Historical Performance Analytics Chart -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-chart-area text-indigo-400"></i> Historical Performance Trends
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Track habit consistency, Namaz execution, and study hours over time.</p>
+            </div>
+            <!-- Time Range Toggles -->
+            <div class="flex gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button onclick="updateAnalyticsRange('weekly')" id="range-weekly" class="px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white">Weekly (7D)</button>
+              <button onclick="updateAnalyticsRange('monthly')" id="range-monthly" class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">Monthly (30D)</button>
+              <button onclick="updateAnalyticsRange('yearly')" id="range-yearly" class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">Yearly (12M)</button>
+            </div>
+          </div>
+
+          <!-- Chart Canvas -->
+          <div class="relative h-64 w-full">
+            <canvas id="analyticsChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Stat Cards Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <span class="text-[10px] uppercase font-mono text-slate-400 font-bold block">Namaz Prayers</span>
+            <span class="text-2xl font-extrabold text-emerald-400 mt-1 block" id="dash-namaz-stat">0/6</span>
+            <span class="text-[10px] text-slate-500 block mt-1">Daily Total</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <span class="text-[10px] uppercase font-mono text-slate-400 font-bold block">Habit Completion</span>
+            <span class="text-2xl font-extrabold text-indigo-400 mt-1 block" id="dash-habits-stat">0%</span>
+            <span class="text-[10px] text-slate-500 block mt-1">Active Habits Completed</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <span class="text-[10px] uppercase font-mono text-slate-400 font-bold block">Pelvic APT Fix</span>
+            <span class="text-2xl font-extrabold text-amber-400 mt-1 block" id="dash-pelvic-stat">0/4</span>
+            <span class="text-[10px] text-slate-500 block mt-1">Daily Sets</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+            <span class="text-[10px] uppercase font-mono text-slate-400 font-bold block">STEM Focus Time</span>
+            <span class="text-2xl font-extrabold text-purple-400 mt-1 block" id="dash-study-stat">0m</span>
+            <span class="text-[10px] text-slate-500 block mt-1">Math/Physics Study</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. ROUTINE VIEW (WITH MULTIPLE ROUTINE PRESETS) -->
+      <div id="view-routine" class="view-panel space-y-6 hidden">
+        
+        <!-- Routine Selector Bar -->
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-clock text-indigo-400"></i> Multiple Routine Presets
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Choose a schedule preset tailored to your lifestyle (Late riser, Early bird, Night owl, Exams cram, Ramadan, Weekend).</p>
+          </div>
+
+          <!-- Selector dropdown -->
+          <div class="flex items-center space-x-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 font-medium">Select Routine:</span>
+            <select id="routine-preset-select" onchange="changeRoutinePreset(this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-indigo-300 font-semibold focus:outline-none focus:border-indigo-500">
+              <option value="late_riser">7:00 AM Late Riser (Ahmed's Schedule)</option>
+              <option value="early_bird">5:00 AM Early Bird Workout Routine</option>
+              <option value="night_owl">Night Owl Deep STEM Grind</option>
+              <option value="exams_cram">Exams Cram 14-Hour Revision Sprint</option>
+              <option value="ramadan">Ramadan Fasting & Devotion Schedule</option>
+              <option value="weekend">Weekend Heavy Gym & Recovery</option>
+              <option value="minimalist">Flex Minimalist College Schedule</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <div class="space-y-3" id="routine-schedule-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. HABITS & NAMAZ UNIFIED TRACKER VIEW -->
+      <div id="view-habits" class="view-panel space-y-6 hidden">
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-check-double text-indigo-400"></i> Unified Habits, Namaz & Priorities
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Use arrows to reprioritize habits or the delete icon to remove unwanted items.</p>
+          </div>
+          <button onclick="load90DayPreset()" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 text-xs font-medium px-4 py-2 rounded-xl transition flex items-center gap-2">
+            <i class="fa-solid fa-rotate-right"></i> Reset Default List
+          </button>
+        </div>
+
+        <!-- Add Custom Habit Form -->
+        <form onsubmit="addHabit(event)" class="flex gap-2 bg-slate-900 p-3 rounded-xl border border-slate-800">
+          <input type="text" id="habit-input" placeholder="Add custom habit..." required class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+          <select id="habit-category-select" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+            <option value="Custom">Custom</option>
+            <option value="Namaz">Namaz</option>
+            <option value="Spiritual">Spiritual</option>
+            <option value="Discipline">Discipline</option>
+            <option value="Fitness">Fitness</option>
+            <option value="Study">Study</option>
+          </select>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> Add
+          </button>
+        </form>
+
+        <!-- Habit List -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6">
+          <div id="habit-list" class="space-y-3">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. GYM & EVERYDAY PELVIC / APT VIEW -->
+      <div id="view-gym" class="view-panel space-y-6 hidden">
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-dumbbell text-indigo-400"></i> Aesthetic Compound Lifts & Pelvic Correction
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Perform the <span class="text-amber-400 font-semibold">Everyday Pelvic/APT Fix</span> daily to flatten lower stomach protrusion. Combine with the <span class="text-indigo-400 font-semibold">4-Day Aesthetic Compound Split</span>.
+          </p>
+        </div>
+
+        <!-- EVERYDAY PELVIC / APT ROUTINE -->
+        <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <span class="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">MANDATORY EVERYDAY</span>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-child text-amber-400"></i> Pelvic Tilt, APT Fix & Kegels
+              </h3>
+            </div>
+            <span class="text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20 px-3 py-1 rounded-full font-mono">Daily Execution</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="pelvic-routine-cards">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- 4-DAY AESTHETIC COMPOUND SPLIT -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span class="text-[10px] font-mono text-indigo-400 font-bold uppercase tracking-wider">4-DAY V-TAPER HYPERTROPHY</span>
+              <h3 class="text-base font-bold text-white">Compound Heavy Lifts</h3>
+            </div>
+            <!-- Gym Day Tabs -->
+            <div class="flex gap-1 overflow-x-auto p-1 bg-slate-950 border border-slate-800 rounded-xl" id="gym-day-tabs">
+              <button onclick="switchGymDay(1)" id="gday-1" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white">Day 1: Upper V-Taper</button>
+              <button onclick="switchGymDay(2)" id="gday-2" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">Day 2: Legs & Core</button>
+              <button onclick="switchGymDay(3)" id="gday-3" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">Day 3: Shoulder Width</button>
+              <button onclick="switchGymDay(4)" id="gday-4" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white">Day 4: Posterior Chain</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="gym-exercise-cards">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Logged Gym History -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">Recent Gym Set History</h4>
+          <div id="gym-history-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. ULTRA-BUDGET PAKISTANI FAT-LOSS DIET VIEW -->
+      <div id="view-diet" class="view-panel space-y-6 hidden">
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-utensils text-amber-400"></i> Ultra-Budget Pakistani Deficit Diet (~1,480 kcal)
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">High protein (~95g–110g) using cheap Pakistani staples (Soya chunks, Kala Chana, Dahi, Daal, Eggs, Besan).</p>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center space-x-4 text-center">
+            <div>
+              <span class="text-[10px] text-slate-400 font-mono block">Calories</span>
+              <span class="text-sm font-extrabold text-amber-400 font-mono">~1,480 kcal</span>
+            </div>
+            <div class="border-l border-slate-800 pl-4">
+              <span class="text-[10px] text-slate-400 font-mono block">Budget Protein</span>
+              <span class="text-sm font-extrabold text-indigo-400 font-mono">100g Full</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6" id="diet-meals-container">
+          <!-- Rendered dynamically with alternative toggles -->
+        </div>
+      </div>
+
+      <!-- 6. SOUND & MUSIC HELPER VIEW (16 SYNTHESIZED MODES) -->
+      <div id="view-study" class="view-panel space-y-6 hidden">
+        
+        <!-- SOUND & MUSIC ENGINE CARD -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div>
+              <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-headphones text-indigo-400"></i> Pure Web Audio Sound Engine (16 Modes)
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">100% browser-synthesized sounds: Gym bass beats, weather rain/ocean/thunder, and study brainwave tones.</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+              <span id="sound-status-badge" class="text-xs font-mono px-3 py-1 rounded-full bg-slate-950 text-slate-400 border border-slate-800">
+                Status: Muted
+              </span>
+              <button onclick="stopAllAudio()" class="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-square"></i> Stop Sound
+              </button>
+            </div>
+          </div>
+
+          <!-- Volume Slider -->
+          <div class="flex items-center space-x-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <i class="fa-solid fa-volume-high text-indigo-400 text-xs"></i>
+            <span class="text-xs font-medium text-slate-300">Volume:</span>
+            <input type="range" id="audio-volume-slider" min="0" max="1" step="0.05" value="0.7" onchange="setGlobalVolume(this.value)" class="flex-1 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg">
+          </div>
+
+          <!-- SOUND CATEGORIES GRID -->
+          <div class="space-y-6 pt-2">
+            
+            <!-- CATEGORY 1: GYM & HIGH ENERGY -->
+            <div>
+              <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <i class="fa-solid fa-bolt"></i> ⚡ Gym & High Energy Beats (4 Modes)
+              </h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">128 BPM Sub-Bass Pulse</h4>
+                    <p class="text-[10px] text-slate-400">Pulsing heavy low-bass synth wave.</p>
+                  </div>
+                  <button id="sbtn-gym" onclick="playAudioMode('gym')" class="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Bass Pulse</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">45Hz Heavy Sub Drone</h4>
+                    <p class="text-[10px] text-slate-400">Continuous deep sub-bass resonance.</p>
+                  </div>
+                  <button id="sbtn-sub" onclick="playAudioMode('sub')" class="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Sub Drone</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">140 BPM Hardcore Pump</h4>
+                    <p class="text-[10px] text-slate-400">Fast rhythm pulse for max energy.</p>
+                  </div>
+                  <button id="sbtn-hardcore" onclick="playAudioMode('hardcore')" class="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Hardcore Pump</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Industrial Metallic Hum</h4>
+                    <p class="text-[10px] text-slate-400">Heavy iron & steel gym atmosphere.</p>
+                  </div>
+                  <button id="sbtn-ind_hum" onclick="playAudioMode('ind_hum')" class="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Industrial Hum</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CATEGORY 2: STEM & FOCUS FREQUENCIES -->
+            <div>
+              <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <i class="fa-solid fa-brain"></i> 🧠 STEM & Deep Focus Brainwaves (5 Modes)
+              </h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">40Hz Gamma Binaural Beat</h4>
+                    <p class="text-[10px] text-slate-400">Calculus & physics numerical solving.</p>
+                  </div>
+                  <button id="sbtn-gamma" onclick="playAudioMode('gamma')" class="w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play 40Hz Gamma</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">14Hz Alpha Flow Wave</h4>
+                    <p class="text-[10px] text-slate-400">Steady reading & concept learning.</p>
+                  </div>
+                  <button id="sbtn-alpha" onclick="playAudioMode('alpha')" class="w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play 14Hz Alpha</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Warm Triad Lo-Fi Drone</h4>
+                    <p class="text-[10px] text-slate-400">Comfortable triadic chord resonance.</p>
+                  </div>
+                  <button id="sbtn-lofi" onclick="playAudioMode('lofi')" class="w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Lo-Fi Drone</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">528Hz Solfeggio Clarity</h4>
+                    <p class="text-[10px] text-slate-400">Pure clarity tone for deep focus.</p>
+                  </div>
+                  <button id="sbtn-solfeggio" onclick="playAudioMode('solfeggio')" class="w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play 528Hz Tone</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Deep Focus Choir Hum</h4>
+                    <p class="text-[10px] text-slate-400">Warm harmonic choir hum for long sessions.</p>
+                  </div>
+                  <button id="sbtn-choir" onclick="playAudioMode('choir')" class="w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Choir Hum</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CATEGORY 3: WEATHER & NATURE -->
+            <div>
+              <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <i class="fa-solid fa-cloud-sun font-bold"></i> 🍃 Weather & Nature Ambiance (5 Modes)
+              </h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Soft Rain Shower</h4>
+                    <p class="text-[10px] text-slate-400">Gentle relaxing rain sound.</p>
+                  </div>
+                  <button id="sbtn-rain" onclick="playAudioMode('rain')" class="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Soft Rain</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Thunderstorm Rumbles</h4>
+                    <p class="text-[10px] text-slate-400">Heavy rain + periodic thunder.</p>
+                  </div>
+                  <button id="sbtn-thunder" onclick="playAudioMode('thunder')" class="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Thunderstorm</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Ocean Tide Swells</h4>
+                    <p class="text-[10px] text-slate-400">Rhythmic modulating ocean waves.</p>
+                  </div>
+                  <button id="sbtn-ocean" onclick="playAudioMode('ocean')" class="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Ocean Tide</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Forest Wind Whispers</h4>
+                    <p class="text-[10px] text-slate-400">Soft breeze rustling through trees.</p>
+                  </div>
+                  <button id="sbtn-wind" onclick="playAudioMode('wind')" class="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Forest Wind</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Campfire Crackle</h4>
+                    <p class="text-[10px] text-slate-400">Cozy evening campfire ambiance.</p>
+                  </div>
+                  <button id="sbtn-campfire" onclick="playAudioMode('campfire')" class="w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Campfire</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- CATEGORY 4: ACOUSTIC NOISE SHIELDS -->
+            <div>
+              <h3 class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <i class="fa-solid fa-shield"></i> 🎧 Acoustic Noise Shielding Masks (2 Modes)
+              </h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Deep Brown Noise Shield</h4>
+                    <p class="text-[10px] text-slate-400">Masks room chatter & street noise.</p>
+                  </div>
+                  <button id="sbtn-brown" onclick="playAudioMode('brown')" class="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Brown Noise</button>
+                </div>
+
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <h4 class="text-xs font-bold text-white">Soft Pink Noise Mask</h4>
+                    <p class="text-[10px] text-slate-400">Smooth acoustic balance for reading.</p>
+                  </div>
+                  <button id="sbtn-pink" onclick="playAudioMode('pink')" class="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 py-1.5 rounded-lg text-xs font-semibold transition">Play Pink Noise</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TIMER & FORMULA REFERENCE GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Pomodoro Focus Timer</span>
+                <i class="fa-solid fa-clock text-slate-500"></i>
+              </div>
+              <div class="text-center py-6">
+                <div class="text-5xl font-mono font-extrabold text-white tracking-widest" id="timer-display">25:00</div>
+                <p class="text-xs text-slate-400 mt-2" id="timer-status">Ready for Deep Math & Physics</p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button id="timer-toggle-btn" onclick="toggleTimer()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play"></i> Start Session
+              </button>
+              <button onclick="resetTimer()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-4 py-2.5 rounded-xl transition text-xs">
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-square-root-variable text-indigo-400"></i> Essential Math & Physics Formula Sheet
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span class="text-indigo-400 font-semibold block mb-1">Kinematics</span>
+                <p class="font-mono text-slate-300">v = u + at</p>
+                <p class="font-mono text-slate-300">s = ut + ½at²</p>
+                <p class="font-mono text-slate-300">v² = u² + 2as</p>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span class="text-purple-400 font-semibold block mb-1">Forces & Energy</span>
+                <p class="font-mono text-slate-300">F = ma</p>
+                <p class="font-mono text-slate-300">KE = ½mv² | PE = mgh</p>
+                <p class="font-mono text-slate-300">W = Fd cos(θ)</p>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span class="text-emerald-400 font-semibold block mb-1">Differential Calculus</span>
+                <p class="font-mono text-slate-300">d/dx [xⁿ] = n·xⁿ⁻¹</p>
+                <p class="font-mono text-slate-300">d/dx [sin x] = cos x</p>
+              </div>
+              <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span class="text-amber-400 font-semibold block mb-1">Integral Calculus</span>
+                <p class="font-mono text-slate-300">∫ xⁿ dx = (xⁿ⁺¹)/(n+1) + C</p>
+                <p class="font-mono text-slate-300">∫ eˣ dx = eˣ + C</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
+          <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square text-purple-400"></i> Math & Physics Problem Scratchpad
+          </h3>
+          <textarea id="study-scratchpad" rows="4" placeholder="Write equations, given values, problem steps..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-mono" oninput="saveScratchpad()"></textarea>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- 3. COMMUNITY / INSPECT PANELS MODAL -->
+  <div id="community-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeCommunityModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      
+      <div class="flex items-center space-x-3">
+        <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+          <i class="fa-solid fa-users text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-white">Registered Users & Community Leaderboard</h3>
+          <p class="text-xs text-slate-400">Click "Inspect Profile" to view a detailed read-only summary for any user.</p>
+        </div>
+      </div>
+
+      <!-- Leaderboard List -->
+      <div class="space-y-3" id="community-users-list">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- EXERCISE HELP MODAL -->
+  <div id="exercise-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
+      <button onclick="closeExerciseModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+          <i class="fa-solid fa-circle-info"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-white" id="modal-title">Exercise Title</h3>
+          <span class="text-xs text-indigo-400 font-mono" id="modal-muscles">Target Muscles</span>
+        </div>
+      </div>
+      
+      <div class="space-y-3 text-xs text-slate-300">
+        <div>
+          <strong class="text-slate-100 block mb-1">Form Cues & Setup:</strong>
+          <p id="modal-setup" class="leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800"></p>
+        </div>
+        <div>
+          <strong class="text-slate-100 block mb-1">Aesthetic / Pelvic Benefit:</strong>
+          <p id="modal-execution" class="leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800"></p>
+        </div>
+      </div>
+
+      <button onclick="closeExerciseModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 rounded-xl font-medium text-xs transition">
+        Got it!
+      </button>
+    </div>
+  </div>
+
+
+  <!-- JAVASCRIPT APPLICATION ENGINE -->
+  <script>
+    // --- 1. USER AUTHENTICATION & EMBEDDED LOCAL STORAGE ---
+    const SYSTEM_USERS_KEY = 'habit_panel_users_db';
+    const ACTIVE_SESSION_KEY = 'habit_panel_active_user';
+
+    const defaultHabitsList = [
+      { id: 'fajr', name: 'Fajr Namaz', category: 'Namaz' },
+      { id: 'dhuhr', name: 'Dhuhr Namaz', category: 'Namaz' },
+      { id: 'asr', name: 'Asr Namaz', category: 'Namaz' },
+      { id: 'maghrib', name: 'Maghrib Namaz', category: 'Namaz' },
+      { id: 'isha', name: 'Isha Namaz', category: 'Namaz' },
+      { id: 'tahajjud', name: 'Tahajjud / Sunnah', category: 'Namaz' },
+      { id: 'quran', name: 'Quran Recitation & Translation', category: 'Spiritual' },
+      { id: 'h3', name: 'Eat 1-2 Eggs / Soya Protein', category: 'Nutrition' },
+      { id: 'h4', name: 'Drink 3L Water', category: 'Hydration' },
+      { id: 'h5', name: 'Get 7-8 Hours Sleep', category: 'Recovery' },
+      { id: 'h6', name: '10K+ Steps Daily', category: 'Fitness' },
+      { id: 'h7', name: 'Outdoor Activity / Workout', category: 'Fitness' },
+      { id: 'h8', name: 'Cold Shower Morning', category: 'Discipline' },
+      { id: 'h9', name: 'Write what you learned', category: 'Study' },
+      { id: 'h10', name: 'Journal 5 Daily Wins', category: 'Mindset' }
+    ];
+
+    let registeredUsers = JSON.parse(localStorage.getItem(SYSTEM_USERS_KEY)) || {
+      'Ahmed': { password: '123', role: 'Founder' }
+    };
+
+    let loggedInUser = localStorage.getItem(ACTIVE_SESSION_KEY) || null;
+    let activeUser = loggedInUser;
+    let isInspecting = false;
+
+    let dailyDb = {};
+    let userHabits = [];
+    let activeDate = new Date().toISOString().split('T')[0];
+    let selectedGymDay = 1;
+    let selectedRoutinePreset = 'late_riser';
+    let chartInstance = null;
+
+    function saveUsersToStorage() {
+      localStorage.setItem(SYSTEM_USERS_KEY, JSON.stringify(registeredUsers));
+    }
+
+    function initAuth() {
+      if (loggedInUser && registeredUsers[loggedInUser]) {
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        activeUser = loggedInUser;
+        isInspecting = false;
+        loadUserData(activeUser);
+        updateHeaderUI();
+        renderAllViews();
+      } else {
+        document.getElementById('auth-screen').classList.remove('hidden');
+        document.getElementById('main-app').classList.add('hidden');
+      }
+    }
+
+    function switchAuthTab(tab) {
+      document.getElementById('auth-error-msg').classList.add('hidden');
+      if (tab === 'login') {
+        document.getElementById('auth-login-form').classList.remove('hidden');
+        document.getElementById('auth-register-form').classList.add('hidden');
+        document.getElementById('tab-login-btn').className = "flex-1 py-2 rounded-lg bg-indigo-600 text-white transition";
+        document.getElementById('tab-register-btn').className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+      } else {
+        document.getElementById('auth-login-form').classList.add('hidden');
+        document.getElementById('auth-register-form').classList.remove('hidden');
+        document.getElementById('tab-register-btn').className = "flex-1 py-2 rounded-lg bg-emerald-600 text-white transition";
+        document.getElementById('tab-login-btn').className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const uname = document.getElementById('login-username').value.trim();
+      const pass = document.getElementById('login-password').value.trim();
+      const errorEl = document.getElementById('auth-error-msg');
+
+      if (!registeredUsers[uname]) {
+        errorEl.innerText = "User does not exist. Click 'Create Account' to register.";
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      if (registeredUsers[uname].password !== pass) {
+        errorEl.innerText = "Incorrect password.";
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      loggedInUser = uname;
+      localStorage.setItem(ACTIVE_SESSION_KEY, loggedInUser);
+      initAuth();
+    }
+
+    function handleRegister(e) {
+      e.preventDefault();
+      const uname = document.getElementById('reg-username').value.trim();
+      const pass = document.getElementById('reg-password').value.trim();
+      const errorEl = document.getElementById('auth-error-msg');
+
+      if (registeredUsers[uname]) {
+        errorEl.innerText = "Username already exists. Please login.";
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      registeredUsers[uname] = { password: pass, role: 'User' };
+      saveUsersToStorage();
+
+      loggedInUser = uname;
+      localStorage.setItem(ACTIVE_SESSION_KEY, loggedInUser);
+      initAuth();
+    }
+
+    function logout() {
+      stopAllAudio();
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
+      loggedInUser = null;
+      isInspecting = false;
+      initAuth();
+    }
+
+    // --- 2. USER DATA STORAGE ENGINE ---
+    function loadUserData(username) {
+      dailyDb = JSON.parse(localStorage.getItem('habit_data_' + username)) || {};
+      userHabits = JSON.parse(localStorage.getItem('habit_list_' + username)) || defaultHabitsList;
+      selectedRoutinePreset = localStorage.getItem('routine_selected_' + username) || 'late_riser';
+    }
+
+    function saveDb() {
+      if (isInspecting) return;
+      localStorage.setItem('habit_data_' + activeUser, JSON.stringify(dailyDb));
+      renderDashboard();
+    }
+
+    function saveUserHabits() {
+      if (isInspecting) return;
+      localStorage.setItem('habit_list_' + activeUser, JSON.stringify(userHabits));
+    }
+
+    function getDayData(dateStr) {
+      if (!dailyDb[dateStr]) {
+        dailyDb[dateStr] = { habits: {}, pelvic: {}, gymSets: [], studyMins: 0 };
+      }
+      return dailyDb[dateStr];
+    }
+
+    function updateHeaderUI() {
+      document.getElementById('user-name-display').innerText = loggedInUser;
+      document.getElementById('active-user-subtext').innerText = activeUser;
+
+      if (isInspecting) {
+        document.getElementById('inspect-banner').classList.remove('hidden');
+        document.getElementById('inspect-user-name').innerText = activeUser;
+        document.getElementById('main-nav-tabs').classList.add('hidden');
+      } else {
+        document.getElementById('inspect-banner').classList.add('hidden');
+        document.getElementById('main-nav-tabs').classList.remove('hidden');
+      }
+    }
+
+    function renderAllViews() {
+      document.getElementById('history-date-picker').value = activeDate;
+      if (isInspecting) {
+        renderInspectionView();
+      } else {
+        switchTab('dashboard');
+        renderRoutine();
+        renderHabits();
+        renderPelvicRoutine();
+        switchGymDay(1);
+        renderGymHistory();
+        renderDietPlan();
+        renderDashboard();
+        renderAnalyticsChart('weekly');
+      }
+    }
+
+    // --- 3. COMMUNITY & INSPECTION SYSTEM ---
+    function openCommunityModal() {
+      const container = document.getElementById('community-users-list');
+      container.innerHTML = '';
+
+      Object.keys(registeredUsers).forEach(uname => {
+        const uDb = JSON.parse(localStorage.getItem('habit_data_' + uname)) || {};
+        const uHabits = JSON.parse(localStorage.getItem('habit_list_' + uname)) || defaultHabitsList;
+        const dayObj = uDb[activeDate] || { habits: {}, studyMins: 0 };
+
+        const habitsDone = Object.values(dayObj.habits || {}).filter(Boolean).length;
+        const habitPct = uHabits.length === 0 ? 0 : Math.round((habitsDone / uHabits.length) * 100);
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-sm font-bold text-white font-mono">${uname}</span>
+              ${uname === 'Ahmed' ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">FOUNDER</span>' : ''}
+              ${uname === loggedInUser ? '<span class="text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">YOU</span>' : ''}
+            </div>
+            <div class="flex gap-4 text-xs font-mono text-slate-400 mt-2">
+              <span>Habits: <strong class="text-indigo-400">${habitPct}%</strong></span>
+              <span>Study: <strong class="text-purple-400">${dayObj.studyMins || 0}m</strong></span>
+            </div>
+          </div>
+
+          <button onclick="inspectProfile('${uname}')" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+            <i class="fa-solid fa-eye"></i> Inspect Profile
+          </button>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('community-modal').classList.remove('hidden');
+    }
+
+    function closeCommunityModal() {
+      document.getElementById('community-modal').classList.add('hidden');
+    }
+
+    function inspectProfile(uname) {
+      activeUser = uname;
+      isInspecting = (uname !== loggedInUser);
+      loadUserData(activeUser);
+      updateHeaderUI();
+      
+      closeCommunityModal();
+      renderInspectionView();
+    }
+
+    function exitInspectionMode() {
+      activeUser = loggedInUser;
+      isInspecting = false;
+      loadUserData(activeUser);
+      updateHeaderUI();
+      renderAllViews();
+    }
+
+    function renderInspectionView() {
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+      document.getElementById('view-inspection').classList.remove('hidden');
+
+      document.getElementById('inspect-profile-title').innerText = `${activeUser}'s Profile Overview`;
+      const roleBadge = document.getElementById('inspect-role-badge');
+      if (activeUser === 'Ahmed') {
+        roleBadge.innerText = 'FOUNDER';
+        roleBadge.className = 'text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase';
+      } else {
+        roleBadge.innerText = 'MEMBER';
+        roleBadge.className = 'text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase';
+      }
+
+      const dayData = getDayData(activeDate);
+
+      // Namaz
+      const namazKeys = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'tahajjud'];
+      const namazDone = namazKeys.filter(k => (dayData.habits || {})[k]).length;
+      document.getElementById('inspect-stat-namaz').innerText = `${namazDone}/6`;
+
+      // Habits
+      const habitsDone = Object.values(dayData.habits || {}).filter(Boolean).length;
+      const pct = userHabits.length === 0 ? 0 : Math.round((habitsDone / userHabits.length) * 100);
+      document.getElementById('inspect-stat-habits').innerText = `${pct}%`;
+
+      // Pelvic
+      const pelvicDone = Object.values(dayData.pelvic || {}).filter(Boolean).length;
+      document.getElementById('inspect-stat-pelvic').innerText = `${pelvicDone}/4`;
+
+      // Study
+      document.getElementById('inspect-stat-study').innerText = `${dayData.studyMins || 0}m`;
+
+      // Habits list
+      const hList = document.getElementById('inspect-habits-list');
+      hList.innerHTML = '';
+      userHabits.forEach(h => {
+        const isDone = (dayData.habits || {})[h.id] || false;
+        const div = document.createElement('div');
+        div.className = "flex items-center justify-between p-2.5 bg-slate-900 rounded-lg border border-slate-800 text-xs";
+        div.innerHTML = `
+          <span class="${isDone ? 'text-emerald-400 font-semibold' : 'text-slate-400'}">${h.name}</span>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded ${isDone ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}">
+            ${isDone ? 'Completed' : 'Pending'}
+          </span>
+        `;
+        hList.appendChild(div);
+      });
+
+      // Gym Sets
+      const gList = document.getElementById('inspect-gym-list');
+      gList.innerHTML = '';
+      if (!dayData.gymSets || dayData.gymSets.length === 0) {
+        gList.innerHTML = `<p class="text-xs text-slate-500 py-2">No gym sets logged for this date.</p>`;
+      } else {
+        dayData.gymSets.slice().reverse().forEach(w => {
+          const div = document.createElement('div');
+          div.className = "flex items-center justify-between p-2.5 bg-slate-900 rounded-lg border border-slate-800 text-xs";
+          div.innerHTML = `
+            <div>
+              <span class="font-bold text-slate-200 block">${w.exercise}</span>
+              <span class="text-[10px] text-slate-500">${w.time}</span>
+            </div>
+            <span class="font-mono text-amber-400 font-semibold">${w.setsReps}</span>
+          `;
+          gList.appendChild(div);
+        });
+      }
+    }
+
+    // --- 4. MULTIPLE ROUTINE PRESETS DATA ---
+    const routinePresets = {
+      late_riser: [
+        { time: "05:15 AM - 05:40 AM", title: "Fajr Namaz Brief Awake", detail: "Wake up briefly for Fajr Namaz & drink water, then sleep till 07:00 AM.", icon: "fa-mosque", color: "text-emerald-400" },
+        { time: "07:00 AM - 07:15 AM", title: "Wake Up & Quick Shower", detail: "Wake up at 07:00 AM sharp. Take a warm/cold shower and get dressed.", icon: "fa-shower", color: "text-indigo-400" },
+        { time: "07:15 AM - 07:40 AM", title: "Budget Breakfast & Water", detail: "Eat 1 Egg + 1 Bran Roti or Dahi+Oats. Drink 500ml water.", icon: "fa-utensils", color: "text-amber-400" },
+        { time: "07:40 AM - 07:55 AM", title: "15-Min Commute to College", detail: "Travel to college (15 mins). Arrive at 07:55 AM for 08:00 AM class.", icon: "fa-person-walking", color: "text-purple-400" },
+        { time: "08:00 AM - 01:15 PM", title: "College Hours (Deep Attention)", detail: "Attend lectures, take clear Math/Physics notes, drink water.", icon: "fa-graduation-cap", color: "text-purple-400" },
+        { time: "01:15 PM - 01:30 PM", title: "15-Min Travel Home & Dhuhr Namaz", detail: "Return home (15 mins). Perform Dhuhr Namaz upon arrival.", icon: "fa-house-user", color: "text-emerald-400" },
+        { time: "01:30 PM - 02:00 PM", title: "High-Protein Lunch", detail: "Eat Soya Chunks curry or Chicken breast with Roti.", icon: "fa-utensils", color: "text-indigo-400" },
+        { time: "02:00 PM - 02:20 PM", title: "Everyday Pelvic & APT Fix Routine", detail: "Perform 15-min Pelvic Tilts, Glute Bridges, Deadbugs & Kegels to flatten lower belly.", icon: "fa-child", color: "text-amber-400" },
+        { time: "02:20 PM - 03:00 PM", title: "Dedicated Quran Recitation & Translation", detail: "Read 1-2 Ruba/Paras or Surah translation. Quiet spiritual focus block.", icon: "fa-book-quran", color: "text-emerald-400" },
+        { time: "03:00 PM - 04:30 PM", title: "STEM Study Block #1 (1.5 Hours Deep Work)", detail: "Turn on 40Hz Beats or Lo-Fi Drone. Solve hardest Physics numericals / Calculus.", icon: "fa-brain", color: "text-indigo-400" },
+        { time: "04:30 PM - 05:00 PM", title: "Asr Namaz & Pre-Workout Snack", detail: "Offer Asr Namaz. Eat 50g Bhuna Chana + Kahwa tea.", icon: "fa-mosque", color: "text-emerald-400" },
+        { time: "05:00 PM - 06:15 PM", title: "Gym Workout (Aesthetic Compound Split)", detail: "45-60 mins intense heavy compound lifting (Bench, Squat, OHP, Rows).", icon: "fa-dumbbell", color: "text-amber-400" },
+        { time: "06:15 PM - 07:00 PM", title: "Maghrib Namaz & Fat-Burning Dinner", detail: "Post-workout shower, Maghrib Namaz, Eat Kala Chana Chaat or Tikka.", icon: "fa-utensils", color: "text-emerald-400" },
+        { time: "07:00 PM - 09:00 PM", title: "STEM Study Block #2 (2 Hours Revision)", detail: "College homework, formula memorization, concept consolidation.", icon: "fa-book-open", color: "text-indigo-400" },
+        { time: "09:00 PM - 10:00 PM", title: "Isha Namaz & Habit Check-Off", detail: "Offer Isha Namaz. Log day's progress, check habits & 5 wins.", icon: "fa-moon", color: "text-emerald-400" },
+        { time: "10:00 PM - 12:00 AM", title: "Late-Night STEM / Unwind Block", detail: "Review difficult math equations or relax before sleep.", icon: "fa-laptop-code", color: "text-purple-400" },
+        { time: "12:00 AM - 07:00 AM", title: "Sleep (7 Hours Uninterrupted Recovery)", detail: "Deep sleep for muscle recovery and memory consolidation.", icon: "fa-bed", color: "text-slate-400" }
+      ],
+      early_bird: [
+        { time: "05:00 AM - 05:30 AM", title: "Fajr Namaz & Cold Water Wake-Up", detail: "Wake up at 5:00 AM sharp. Pray Fajr Namaz & drink 500ml water.", icon: "fa-sun", color: "text-amber-400" },
+        { time: "05:30 AM - 06:45 AM", title: "Morning Gym Workout", detail: "Empty stomach or light banana, hit compound heavy lifting early.", icon: "fa-dumbbell", color: "text-amber-400" },
+        { time: "06:45 AM - 07:30 AM", title: "Post-Workout Shower & High Protein Breakfast", detail: "Cold shower, 2 eggs + 1 roti / skimmed milk.", icon: "fa-shower", color: "text-indigo-400" },
+        { time: "07:40 AM - 01:15 PM", title: "Commute & College Hours", detail: "Attend all college classes with full alert focus.", icon: "fa-graduation-cap", color: "text-purple-400" },
+        { time: "01:30 PM - 03:00 PM", title: "Dhuhr Namaz, Lunch & Nap Reset", detail: "Eat Soya chunks / chicken, offer Dhuhr, 30-min power nap.", icon: "fa-bed", color: "text-emerald-400" },
+        { time: "03:00 PM - 06:00 PM", title: "3-Hour Deep STEM Study Block", detail: "Calculus & Physics numerical solving with 40Hz Gamma tones.", icon: "fa-brain", color: "text-indigo-400" },
+        { time: "06:00 PM - 09:30 PM", title: "Asr/Maghrib/Isha, Quran & Dinner", detail: "Complete prayers, Quran reading, eat dinner & family time.", icon: "fa-book-quran", color: "text-emerald-400" },
+        { time: "10:00 PM - 05:00 AM", title: "Early Sleep (7 Hours Deep Sleep)", detail: "Lights out at 10:00 PM for maximum muscle recovery.", icon: "fa-moon", color: "text-slate-400" }
+      ],
+      night_owl: [
+        { time: "09:00 AM - 09:30 AM", title: "Late Morning Wake Up & Breakfast", detail: "Shower, breakfast with eggs & dahi.", icon: "fa-sun", color: "text-amber-400" },
+        { time: "10:00 AM - 01:00 PM", title: "Morning Study Block #1", detail: "Fresh mind study before college/online classes.", icon: "fa-book-open", color: "text-indigo-400" },
+        { time: "01:15 PM - 02:00 PM", title: "Dhuhr Namaz & High Protein Lunch", detail: "Offer Dhuhr Namaz, eat lunch.", icon: "fa-utensils", color: "text-emerald-400" },
+        { time: "02:00 PM - 03:00 PM", title: "Pelvic APT Fix & Quran Recitation", detail: "Everyday pelvic tilts & 30-min Quran reading.", icon: "fa-child", color: "text-amber-400" },
+        { time: "05:00 PM - 06:30 PM", title: "Evening Gym Session", detail: "4-Day compound split workout.", icon: "fa-dumbbell", color: "text-amber-400" },
+        { time: "09:00 PM - 01:30 AM", title: "Night Owl Hardcore STEM Grind", detail: "Quiet midnight study session with Brown Noise / Lo-Fi.", icon: "fa-laptop-code", color: "text-purple-400" },
+        { time: "02:00 AM - 09:00 AM", title: "Night Sleep (7 Hours Rest)", detail: "Sleep from 2:00 AM to 9:00 AM.", icon: "fa-moon", color: "text-slate-400" }
+      ],
+      exams_cram: [
+        { time: "06:00 AM - 06:30 AM", title: "Fajr Namaz & Fasting / Water Start", detail: "Wake up, Fajr, drink 500ml water.", icon: "fa-mosque", color: "text-emerald-400" },
+        { time: "06:30 AM - 09:30 AM", title: "Exams Cram Block #1 (3 Hours Math)", detail: "Solve past paper calculus equations with zero distractions.", icon: "fa-brain", color: "text-indigo-400" },
+        { time: "09:30 AM - 10:00 AM", title: "Quick Breakfast & Coffee/Kahwa", detail: "Boiled egg, chana, green tea.", icon: "fa-utensils", color: "text-amber-400" },
+        { time: "10:00 AM - 01:00 PM", title: "Exams Cram Block #2 (3 Hours Physics)", detail: "Physics formulas & numerical derivation.", icon: "fa-atom", color: "text-purple-400" },
+        { time: "01:15 PM - 02:00 PM", title: "Dhuhr Namaz & Quick Lunch", detail: "Pray Dhuhr, high-protein soya chunks meal.", icon: "fa-house-user", color: "text-emerald-400" },
+        { time: "02:00 PM - 05:00 PM", title: "Exams Cram Block #3 (3 Hours Revision)", detail: "Memorize definitions, key diagrams, & short notes.", icon: "fa-pen-to-square", color: "text-indigo-400" },
+        { time: "05:00 PM - 06:00 PM", title: "Pelvic Reset & Evening Walk", detail: "Light pelvic tilt exercises & 30-min walk to clear brain.", icon: "fa-person-walking", color: "text-amber-400" },
+        { time: "07:00 PM - 10:00 PM", title: "Exams Cram Block #4 (3 Hours Past Papers)", detail: "Timed past paper mock test execution.", icon: "fa-square-check", color: "text-purple-400" }
+      ],
+      ramadan: [
+        { time: "04:00 AM - 05:00 AM", title: "Sehri High-Protein Meal & Fajr", detail: "Dahi, 2 Eggs, Paratha / Roti, 1L Water. Pray Fajr.", icon: "fa-moon", color: "text-amber-400" },
+        { time: "05:00 AM - 07:00 AM", title: "Post-Fajr Morning Quran & Zikr", detail: "Read 1 Para of Quran recitation.", icon: "fa-book-quran", color: "text-emerald-400" },
+        { time: "08:00 AM - 01:15 PM", title: "College Hours", detail: "Attend classes while fasting.", icon: "fa-graduation-cap", color: "text-purple-400" },
+        { time: "01:30 PM - 03:00 PM", title: "Dhuhr Namaz & Rest Nap", detail: "1-hour nap to save energy.", icon: "fa-bed", color: "text-emerald-400" },
+        { time: "03:00 PM - 05:00 PM", title: "STEM Study Block", detail: "Solve math problems while calm.", icon: "fa-brain", color: "text-indigo-400" },
+        { time: "05:00 PM - 06:30 PM", title: "Light Pre-Iftar Workout / Pelvic Fix", detail: "Light bodyweight compound sets & pelvic tilt routine.", icon: "fa-dumbbell", color: "text-amber-400" },
+        { time: "06:30 PM - 07:30 PM", title: "Iftar, Maghrib & High Protein Meal", detail: "Break fast with dates, water, Kala Chana chaat, Chicken.", icon: "fa-utensils", color: "text-emerald-400" },
+        { time: "08:00 PM - 09:30 PM", title: "Isha & Taraweeh Prayers", detail: "Attend Taraweeh at masjid.", icon: "fa-mosque", color: "text-emerald-400" }
+      ],
+      weekend: [
+        { time: "07:30 AM - 08:30 AM", title: "Weekend Morning Wake Up & Breakfast", detail: "Relaxed wake up, eggs, dahi & tea.", icon: "fa-sun", color: "text-amber-400" },
+        { time: "09:00 AM - 11:00 AM", title: "Heavy Gym Compound Session", detail: "Focus on PR lifts (Squat, Deadlift, Bench Press).", icon: "fa-dumbbell", color: "text-amber-400" },
+        { time: "11:30 AM - 01:00 PM", title: "Everyday Pelvic Fix & Post-Workout Meal", detail: "Pelvic tilts, deadbugs & Kala Chana meal.", icon: "fa-child", color: "text-indigo-400" },
+        { time: "02:00 PM - 05:00 PM", title: "STEM Deep Review & Projects", detail: "Clean up college notes & organize weekly study goals.", icon: "fa-pen-to-square", color: "text-purple-400" },
+        { time: "05:00 PM - 08:00 PM", title: "Outdoor Sports / Walk & Social Time", detail: "10K steps outdoors with friends.", icon: "fa-person-running", color: "text-emerald-400" }
+      ],
+      minimalist: [
+        { time: "07:00 AM - 08:00 AM", title: "Morning Fuel & Commute", detail: "Shower, 1 egg, commute.", icon: "fa-shower", color: "text-indigo-400" },
+        { time: "08:00 AM - 01:15 PM", title: "College Lectures", detail: "Attend lectures.", icon: "fa-graduation-cap", color: "text-purple-400" },
+        { time: "01:30 PM - 03:00 PM", title: "Prayers & High-Protein Lunch", detail: "Dhuhr, Soya chunks curry.", icon: "fa-utensils", color: "text-emerald-400" },
+        { time: "03:00 PM - 05:00 PM", title: "2-Hour STEM Focus", detail: "Solve assigned math homework.", icon: "fa-brain", color: "text-indigo-400" },
+        { time: "05:00 PM - 06:00 PM", title: "Daily Pelvic Fix & Workout", detail: "15-min pelvic tilt + 30-min lifts.", icon: "fa-dumbbell", color: "text-amber-400" }
+      ]
+    };
+
+    function changeRoutinePreset(val) {
+      selectedRoutinePreset = val;
+      if (!isInspecting) {
+        localStorage.setItem('routine_selected_' + activeUser, selectedRoutinePreset);
+      }
+      renderRoutine();
+    }
+
+    function renderRoutine() {
+      const container = document.getElementById('routine-schedule-list');
+      container.innerHTML = '';
+      
+      const selectEl = document.getElementById('routine-preset-select');
+      if (selectEl) selectEl.value = selectedRoutinePreset;
+
+      const schedule = routinePresets[selectedRoutinePreset] || routinePresets.late_riser;
+
+      schedule.forEach(item => {
+        const row = document.createElement('div');
+        row.className = "p-3.5 bg-slate-950 rounded-xl border border-slate-800 flex items-start space-x-3";
+        row.innerHTML = `
+          <div class="p-2.5 rounded-lg bg-slate-900 ${item.color} mt-0.5"><i class="fa-solid ${item.icon}"></i></div>
+          <div class="flex-1">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <h4 class="text-xs font-bold text-slate-100">${item.title}</h4>
+              <span class="text-[10px] font-mono text-indigo-400 font-semibold bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800">${item.time}</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">${item.detail}</p>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // --- 5. EVERYDAY PELVIC & APT ROUTINE ---
+    const pelvicRoutine = [
+      { name: "Lying Pelvic Tilts", setsReps: "3 Sets × 15 Reps", muscles: "Anterior Pelvic Tilt Fix / Lower Abs", setup: "Lie on back with knees bent. Flatten lower back against floor by tilting pelvis upward.", execution: "Removes lower back arch, pulling lower stomach inward." },
+      { name: "Glute Bridges (Hold 2s)", setsReps: "3 Sets × 15 Reps", muscles: "Gluteus Maximus / Hamstrings", setup: "Lie on back, drive heels into floor and lift hips upward squeezing glutes at top.", execution: "Strengthens glutes to pull pelvis back into straight vertical alignment." },
+      { name: "Deadbugs (Slow Pace)", setsReps: "3 Sets × 12 Reps / Side", muscles: "Deep Transverse Abdominis", setup: "Lie on back, raises arms and knees at 90°. Lower opposite arm and leg while keeping back completely flat.", execution: "Strengthens inner core wall to flatten protruding belly." },
+      { name: "Kegel Endurance Holds", setsReps: "3 Sets × 10 Holds (5s each)", muscles: "Pelvic Floor Muscles", setup: "Contract pelvic floor muscles inwardly (like stopping urine flow). Hold tight for 5 seconds.", execution: "Builds pelvic floor tone, nerve control, and core support." }
+    ];
+
+    // --- 6. GYM SPLIT ---
+    const aestheticWorkouts = {
+      1: { title: "Day 1: Upper V-Taper Power", exercises: [{ name: "Barbell Bench Press", setsReps: "3 Sets × 6-8 Reps", muscles: "Chest, Front Delts, Triceps", setup: "Retract shoulder blades, plant feet firmly.", execution: "Builds thick upper chest foundation." }, { name: "Barbell Bent-Over Row", setsReps: "3 Sets × 8 Reps", muscles: "Lats, Upper Back", setup: "Hinge hips at 45°, pull bar straight to lower ribs.", execution: "Widens upper lats to create V-taper frame." }, { name: "Standing Overhead Press (OHP)", setsReps: "3 Sets × 6 Reps", muscles: "Shoulders, Triceps", setup: "Squeeze glutes tight, press bar straight up over ears.", execution: "Builds broad capped shoulders." }] },
+      2: { title: "Day 2: Lower Body & Core Density", exercises: [{ name: "Barbell Squat", setsReps: "3 Sets × 6-8 Reps", muscles: "Quads, Glutes, Core", setup: "Bar on traps, squat down to parallel.", execution: "Burns maximum calories to strip fat." }, { name: "Romanian Deadlift (RDL)", setsReps: "3 Sets × 8-10 Reps", muscles: "Hamstrings, Glutes", setup: "Hinge hips back feeling deep hamstring stretch.", execution: "Fixes muscle imbalances and tightens glutes." }, { name: "Hanging Leg Raises", setsReps: "3 Sets × 12 Reps", muscles: "Lower Ab Wall", setup: "Hang from pull-up bar, raise knees to chest.", execution: "Directly targets lower ab wall." }] },
+      3: { title: "Day 3: Shoulder Width & Upper Sculpt", exercises: [{ name: "Incline Dumbbell Press", setsReps: "3 Sets × 8-10 Reps", muscles: "Upper Chest", setup: "Bench at 30° incline. Press dumbbells upward.", execution: "Fills out upper chest under collarbones." }, { name: "Lat Pulldown / Wide Pull-ups", setsReps: "3 Sets × 8-10 Reps", muscles: "Outer Lats", setup: "Wide grip, pull bar to upper chest.", execution: "Expands upper back width." }, { name: "Dumbbell Lateral Raises", setsReps: "3 Sets × 12-15 Reps", muscles: "Side Deltoids", setup: "Slight forward lean, raise arms to sides.", execution: "Key exercise for visual shoulder width." }] },
+      4: { title: "Day 4: Posterior Chain & Fat Oxidation", exercises: [{ name: "Barbell Deadlift", setsReps: "3 Sets × 5 Reps", muscles: "Full Body Posterior Chain", setup: "Bar over mid-foot, drive ground away.", execution: "Highest metabolic demand for fat loss." }, { name: "Bulgarian Split Squat", setsReps: "3 Sets × 8-10 Reps / Leg", muscles: "Quads & Glutes", setup: "One foot elevated behind on bench, lower back knee.", execution: "Fixes leg & pelvic asymmetries." }, { name: "Face Pulls", setsReps: "3 Sets × 15 Reps", muscles: "Rear Delts, Upper Back", setup: "Pull rope attachment towards eyes flaring elbows.", execution: "Fixes rounded posture from study." }] }
+    };
+
+    // --- 7. BUDGET PAKISTANI DIET ---
+    const pakistaniBudgetMeals = [
+      { mealTitle: "Meal 1: Morning College Fuel", primary: "1 Whole Egg + 150g Homemade Dahi (Yogurt) + 1 Bran Roti + Black Tea (No Sugar)", macros: "~340 kcal | 22g Protein | 32g Carbs | 9g Fat", costNote: "Cost: ~Rs. 60-70 total", alternatives: ["Alt 1: 1 Cup Boiled White Chana with lemon & chaat masala + 1 Boiled Egg (~320 kcal)", "Alt 2: Besan Chilla (50g Gram Flour pancake cooked in 1/2 tsp oil) + Dahi (~310 kcal)", "Alt 3: Anda Ghotala (2 scrambled eggs with onion/tomato) + 1 Roti (~360 kcal)"] },
+      { mealTitle: "Meal 2: Post-College High-Protein Lunch", primary: "50g Soya Chunks (Soja) cooked in 1 tsp oil with onion/tomato + 1 Bran Roti", macros: "~390 kcal | 35g Protein | 38g Carbs | 6g Fat", costNote: "Soya chunks are extremely cheap (~Rs. 40 per 100g)", alternatives: ["Alt 1: 150g Chicken Breast / Liver Curry (Light oil) + 1 Bran Roti (~380 kcal)", "Alt 2: 1.5 Cups Daal (Chana/Masoor) + 200g Dahi (~360 kcal)", "Alt 3: Soya Kababs (50g boiled soya chunks pan-fried with spices) (~330 kcal)"] },
+      { mealTitle: "Meal 3: Pre-Workout Afternoon Snack", primary: "50g Bhuna Chana (Roasted Black Chickpeas) + Green Tea (Kahwa)", macros: "~185 kcal | 11g Protein | 28g Carbs | 3g Fat", costNote: "Cost: ~Rs. 25", alternatives: ["Alt 1: 1 Glass Skimmed Milk + 1 Small Banana (~170 kcal)", "Alt 2: 2 Boiled Egg Whites with Chaat Masala (~50 kcal)", "Alt 3: 50g Raw Peanuts / Roasted Moongfali (~280 kcal)"] },
+      { mealTitle: "Meal 4: Post-Workout Fat-Burning Dinner", primary: "150g Kala Chana Chaat (Boiled Black Chickpeas with cucumber, tomato, lemon) + 1 Boiled Egg", macros: "~380 kcal | 24g Protein | 42g Carbs | 7g Fat", costNote: "Kala Chana provides massive fiber to melt lower belly fat", alternatives: ["Alt 1: 100g Chicken Tikka / Seekh Kabab + Fresh Salad (~310 kcal)", "Alt 2: Daal Mix Bowl + 2 Egg Whites + Cucumber Salad (~340 kcal)", "Alt 3: 150g Homemade Paneer / Chhena Chaat (~320 kcal)"] }
+    ];
+
+    // --- 8. UI RENDER FUNCTIONS ---
+    function changeActiveDate(newDate) {
+      activeDate = newDate;
+      if (isInspecting) {
+        renderInspectionView();
+      } else {
+        renderHabits();
+        renderPelvicRoutine();
+        renderGymHistory();
+        renderDashboard();
+      }
+    }
+
+    function switchTab(tabId) {
+      if (isInspecting) return;
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-600/30');
+        btn.classList.add('text-slate-400');
+      });
+
+      document.getElementById('view-' + tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('tab-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'shadow-indigo-600/30');
+        activeBtn.classList.remove('text-slate-400');
+      }
+
+      if (tabId === 'dashboard') {
+        renderAnalyticsChart('weekly');
+      }
+    }
+
+    function renderHabits() {
+      const listEl = document.getElementById('habit-list');
+      listEl.innerHTML = '';
+      const dayData = getDayData(activeDate);
+
+      if (userHabits.length === 0) {
+        listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No habits in list. Click "Reset Default List" or add a custom habit above.</p>`;
+        return;
+      }
+
+      userHabits.forEach((h, index) => {
+        const isDone = dayData.habits[h.id] || false;
+        const item = document.createElement('div');
+        item.className = `flex items-center justify-between p-3.5 rounded-xl border transition ${
+          isDone ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-slate-950 border-slate-800'
+        }`;
+
+        item.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <div class="flex flex-col space-y-1">
+              <button onclick="moveHabit(${index}, -1)" class="text-[10px] text-slate-500 hover:text-indigo-400 transition ${index === 0 ? 'opacity-20 cursor-not-allowed' : ''}" ${index === 0 ? 'disabled' : ''}>
+                <i class="fa-solid fa-chevron-up"></i>
+              </button>
+              <button onclick="moveHabit(${index}, 1)" class="text-[10px] text-slate-500 hover:text-indigo-400 transition ${index === userHabits.length - 1 ? 'opacity-20 cursor-not-allowed' : ''}" ${index === userHabits.length - 1 ? 'disabled' : ''}>
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </div>
+
+            <button onclick="toggleHabit('${h.id}')" class="w-6 h-6 rounded-lg border flex items-center justify-center transition ${
+              isDone ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-700 hover:border-indigo-500 text-transparent'
+            }">
+              <i class="fa-solid fa-check text-xs"></i>
+            </button>
+
+            <div>
+              <span class="text-xs font-medium ${isDone ? 'line-through text-slate-400' : 'text-slate-100'}">${h.name}</span>
+              <span class="text-[9px] ml-2 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">${h.category}</span>
+            </div>
+          </div>
+
+          <button onclick="deleteHabit('${h.id}')" class="text-slate-600 hover:text-red-400 p-1.5 transition text-xs" title="Delete Habit">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    function toggleHabit(id) {
+      if (isInspecting) return;
+      const dayData = getDayData(activeDate);
+      dayData.habits[id] = !dayData.habits[id];
+      saveDb();
+      renderHabits();
+    }
+
+    function moveHabit(index, direction) {
+      if (isInspecting) return;
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= userHabits.length) return;
+      const temp = userHabits[index];
+      userHabits[index] = userHabits[newIndex];
+      userHabits[newIndex] = temp;
+      saveUserHabits();
+      renderHabits();
+    }
+
+    function deleteHabit(id) {
+      if (isInspecting) return;
+      if (confirm('Delete this habit from your personal list?')) {
+        userHabits = userHabits.filter(h => h.id !== id);
+        saveUserHabits();
+        renderHabits();
+        renderDashboard();
+      }
+    }
+
+    function addHabit(e) {
+      e.preventDefault();
+      if (isInspecting) return;
+      const input = document.getElementById('habit-input');
+      const cat = document.getElementById('habit-category-select').value;
+      if (!input.value.trim()) return;
+      
+      const newId = 'custom_' + Date.now();
+      userHabits.push({ id: newId, name: input.value.trim(), category: cat });
+      input.value = '';
+      saveUserHabits();
+      renderHabits();
+      renderDashboard();
+    }
+
+    function load90DayPreset() {
+      if (isInspecting) return;
+      if (confirm('Reset to standard habit list?')) {
+        userHabits = JSON.parse(JSON.stringify(defaultHabitsList));
+        saveUserHabits();
+        renderHabits();
+        renderDashboard();
+      }
+    }
+
+    function renderPelvicRoutine() {
+      const container = document.getElementById('pelvic-routine-cards');
+      container.innerHTML = '';
+      const dayData = getDayData(activeDate);
+
+      pelvicRoutine.forEach((ex, idx) => {
+        const isDone = dayData.pelvic[ex.name] || false;
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3 flex flex-col justify-between";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono text-amber-400 font-bold uppercase">Daily #${idx + 1}</span>
+              <button onclick='openExerciseModal(${JSON.stringify(ex).replace(/'/g, "&apos;")})' class="text-[10px] text-slate-400 hover:text-white">
+                <i class="fa-solid fa-circle-question"></i> Guide
+              </button>
+            </div>
+            <h4 class="text-xs font-bold text-white mt-1">${ex.name}</h4>
+            <span class="text-[10px] font-mono text-indigo-400 block mt-0.5">${ex.setsReps}</span>
+          </div>
+          <button onclick="autoLogPelvic('${ex.name}')" class="w-full py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+            isDone ? 'bg-emerald-600 text-white' : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30'
+          }">
+            <i class="fa-solid ${isDone ? 'fa-circle-check' : 'fa-bolt'}"></i> ${isDone ? 'Completed' : '⚡ Auto Log Tick'}
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function autoLogPelvic(name) {
+      if (isInspecting) return;
+      const dayData = getDayData(activeDate);
+      dayData.pelvic[name] = !dayData.pelvic[name];
+      saveDb();
+      renderPelvicRoutine();
+    }
+
+    function switchGymDay(dayNum) {
+      selectedGymDay = dayNum;
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById(`gday-${i}`);
+        if (btn) {
+          btn.className = i === dayNum 
+            ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white"
+            : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+        }
+      }
+      renderGymCards();
+    }
+
+    function renderGymCards() {
+      const container = document.getElementById('gym-exercise-cards');
+      container.innerHTML = '';
+      const dayData = aestheticWorkouts[selectedGymDay];
+      dayData.exercises.forEach((ex, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] font-mono text-indigo-400 font-bold uppercase">Compound #${idx + 1}</span>
+              <button onclick='openExerciseModal(${JSON.stringify(ex).replace(/'/g, "&apos;")})' class="text-xs bg-slate-800 hover:bg-slate-700 text-indigo-300 px-2.5 py-1 rounded-lg transition">
+                <i class="fa-solid fa-circle-question"></i> Form Cues
+              </button>
+            </div>
+            <h4 class="text-base font-bold text-white">${ex.name}</h4>
+            <span class="text-xs font-mono text-amber-400 block mt-1">${ex.setsReps}</span>
+            <p class="text-xs text-slate-400 mt-2">Target: ${ex.muscles}</p>
+          </div>
+          <button onclick="autoLogGym('${ex.name}', '${ex.setsReps}')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-bolt"></i> ⚡ Auto Log Set
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function autoLogGym(name, setsReps) {
+      if (isInspecting) return;
+      const dayData = getDayData(activeDate);
+      dayData.gymSets.push({ exercise: name, setsReps: setsReps, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+      saveDb();
+      renderGymHistory();
+    }
+
+    function renderGymHistory() {
+      const container = document.getElementById('gym-history-list');
+      container.innerHTML = '';
+      const dayData = getDayData(activeDate);
+
+      if (!dayData.gymSets || dayData.gymSets.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 py-2">No workout sets logged for selected date.</p>`;
+        return;
+      }
+
+      dayData.gymSets.slice().reverse().forEach(w => {
+        const row = document.createElement('div');
+        row.className = "flex items-center justify-between p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-xs";
+        row.innerHTML = `
+          <div>
+            <span class="font-bold text-slate-200 block">${w.exercise}</span>
+            <span class="text-[10px] text-slate-500">${w.time}</span>
+          </div>
+          <span class="font-mono text-indigo-400 font-semibold">${w.setsReps}</span>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderDietPlan() {
+      const container = document.getElementById('diet-meals-container');
+      container.innerHTML = '';
+      pakistaniBudgetMeals.forEach((meal, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4";
+        let altHtml = meal.alternatives.map(alt => `<li class="text-xs text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800/80">${alt}</li>`).join('');
+
+        card.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-white">${meal.mealTitle}</h3>
+              <span class="text-[10px] text-emerald-400 font-mono block mt-0.5">${meal.costNote}</span>
+            </div>
+            <span class="text-xs font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">${meal.macros}</span>
+          </div>
+          <div>
+            <strong class="text-xs text-indigo-400 uppercase tracking-wider block mb-1">Primary Cheap Choice:</strong>
+            <p class="text-xs text-slate-200 bg-slate-950 p-3 rounded-xl border border-slate-800 leading-relaxed font-medium">${meal.primary}</p>
+          </div>
+          <div>
+            <button onclick="toggleAlternatives(${idx})" class="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1 mb-2">
+              <i class="fa-solid fa-arrows-rotate"></i> Swaps & Alternatives (Click to View)
+            </button>
+            <ul id="diet-alt-${idx}" class="space-y-2 hidden">${altHtml}</ul>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function toggleAlternatives(idx) {
+      document.getElementById(`diet-alt-${idx}`).classList.toggle('hidden');
+    }
+
+    function openExerciseModal(ex) {
+      document.getElementById('modal-title').innerText = ex.name;
+      document.getElementById('modal-muscles').innerText = "Target: " + ex.muscles;
+      document.getElementById('modal-setup').innerText = ex.setup;
+      document.getElementById('modal-execution').innerText = ex.execution;
+      document.getElementById('exercise-modal').classList.remove('hidden');
+    }
+
+    function closeExerciseModal() {
+      document.getElementById('exercise-modal').classList.add('hidden');
+    }
+
+    // --- 9. PURE WEB AUDIO SYNTHESIS SOUND ENGINE (16 MODES) ---
+    let audioCtx = null;
+    let currentAudioMode = null;
+    let activeNodes = { list: [], masterGain: null };
+    let globalVolume = 0.7;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function setGlobalVolume(val) {
+      globalVolume = parseFloat(val);
+      if (activeNodes.masterGain && audioCtx) {
+        activeNodes.masterGain.gain.setValueAtTime(0.2 * globalVolume, audioCtx.currentTime);
+      }
+    }
+
+    function stopAllAudio() {
+      if (activeNodes.list) {
+        activeNodes.list.forEach(node => {
+          try {
+            if (node.stop) node.stop();
+            if (node.disconnect) node.disconnect();
+          } catch(e) {}
+        });
+      }
+      activeNodes = { list: [], masterGain: null };
+      currentAudioMode = null;
+      updateAudioUI();
+    }
+
+    function playAudioMode(mode) {
+      const ctx = getAudioContext();
+
+      if (currentAudioMode === mode) {
+        stopAllAudio();
+        return;
+      }
+
+      stopAllAudio();
+      currentAudioMode = mode;
+
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0.2 * globalVolume, ctx.currentTime);
+      masterGain.connect(ctx.destination);
+      
+      const nodesList = [];
+      activeNodes = { list: nodesList, masterGain: masterGain };
+
+      if (mode === 'gym') {
+        // 128 BPM Sub-Bass Synth Pulse
+        const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 55;
+        const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 250;
+        const lfo = ctx.createOscillator(); lfo.frequency.value = 2.13;
+        const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.2;
+
+        lfo.connect(lfoGain.gain);
+        osc.connect(filter); filter.connect(lfoGain); lfoGain.connect(masterGain);
+        osc.start(); lfo.start();
+        nodesList.push(osc, lfo, filter, lfoGain);
+
+      } else if (mode === 'sub') {
+        // Deep 45Hz Heavy Sub-Bass Drone
+        const sub1 = ctx.createOscillator(); sub1.type = 'sine'; sub1.frequency.value = 45;
+        const sub2 = ctx.createOscillator(); sub2.type = 'triangle'; sub2.frequency.value = 90;
+        const subGain = ctx.createGain(); subGain.gain.value = 0.3;
+
+        sub1.connect(subGain); sub2.connect(subGain); subGain.connect(masterGain);
+        sub1.start(); sub2.start();
+        nodesList.push(sub1, sub2, subGain);
+
+      } else if (mode === 'hardcore') {
+        // 140 BPM Hardcore Pump Pulse
+        const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 110;
+        const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 400;
+        const lfo = ctx.createOscillator(); lfo.frequency.value = 2.33;
+        const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.25;
+
+        lfo.connect(lfoGain.gain);
+        osc.connect(filter); filter.connect(lfoGain); lfoGain.connect(masterGain);
+        osc.start(); lfo.start();
+        nodesList.push(osc, lfo, filter, lfoGain);
+
+      } else if (mode === 'ind_hum') {
+        // Industrial Metallic Noise Hum
+        const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 60;
+        const sub = ctx.createOscillator(); sub.type = 'sawtooth'; sub.frequency.value = 120;
+        const filter = ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 180;
+
+        osc.connect(filter); sub.connect(filter); filter.connect(masterGain);
+        osc.start(); sub.start();
+        nodesList.push(osc, sub, filter);
+
+      } else if (mode === 'gamma') {
+        // 40Hz Gamma Focus
+        const merger = ctx.createChannelMerger(2);
+        const oscL = ctx.createOscillator(); oscL.frequency.value = 200;
+        const oscR = ctx.createOscillator(); oscR.frequency.value = 240;
+        oscL.connect(merger, 0, 0); oscR.connect(merger, 0, 1); merger.connect(masterGain);
+        oscL.start(); oscR.start();
+        nodesList.push(oscL, oscR, merger);
+
+      } else if (mode === 'alpha') {
+        // 14Hz Alpha Flow
+        const merger = ctx.createChannelMerger(2);
+        const oscL = ctx.createOscillator(); oscL.frequency.value = 200;
+        const oscR = ctx.createOscillator(); oscR.frequency.value = 214;
+        oscL.connect(merger, 0, 0); oscR.connect(merger, 0, 1); merger.connect(masterGain);
+        oscL.start(); oscR.start();
+        nodesList.push(oscL, oscR, merger);
+
+      } else if (mode === 'lofi') {
+        // Warm Triad Lo-Fi Drone
+        [130.81, 164.81, 196.00].forEach(freq => {
+          const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
+          const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 350;
+          osc.connect(filter); filter.connect(masterGain);
+          osc.start();
+          nodesList.push(osc, filter);
+        });
+
+      } else if (mode === 'solfeggio') {
+        // 528Hz Solfeggio Clarity
+        const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 528;
+        const lfo = ctx.createOscillator(); lfo.frequency.value = 0.5;
+        const lfoGain = ctx.createGain(); lfoGain.gain.value = 2;
+        lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+        osc.connect(masterGain);
+        osc.start(); lfo.start();
+        nodesList.push(osc, lfo, lfoGain);
+
+      } else if (mode === 'choir') {
+        // Deep Focus Choir Hum
+        [110, 165, 220].forEach(freq => {
+          const osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.value = freq;
+          const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 300;
+          osc.connect(filter); filter.connect(masterGain);
+          osc.start();
+          nodesList.push(osc, filter);
+        });
+
+      } else if (mode === 'rain') {
+        // Soft Rain
+        const bufferSize = ctx.sampleRate * 2;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let b0=0, b1=0, b2=0, b3=0, b4=0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          output[i] = (b0 + b1 + b2 + b3 + b4) * 0.05;
+        }
+        const rainSource = ctx.createBufferSource(); rainSource.buffer = noiseBuffer; rainSource.loop = true;
+        const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 800;
+        rainSource.connect(filter); filter.connect(masterGain);
+        rainSource.start();
+        nodesList.push(rainSource, filter);
+
+      } else if (mode === 'thunder') {
+        // Thunderstorm & Sub Rumbles
+        const bufferSize = ctx.sampleRate * 2;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * 0.08;
+        const rainSource = ctx.createBufferSource(); rainSource.buffer = noiseBuffer; rainSource.loop = true;
+        const rainFilter = ctx.createBiquadFilter(); rainFilter.type = 'lowpass'; rainFilter.frequency.value = 600;
+
+        const thunderOsc = ctx.createOscillator(); thunderOsc.type = 'sine'; thunderOsc.frequency.value = 35;
+        const thunderLfo = ctx.createOscillator(); thunderLfo.frequency.value = 0.2;
+        const thunderGain = ctx.createGain(); thunderLfo.connect(thunderGain.gain);
+
+        rainSource.connect(rainFilter); rainFilter.connect(masterGain);
+        thunderOsc.connect(thunderGain); thunderGain.connect(masterGain);
+        rainSource.start(); thunderOsc.start(); thunderLfo.start();
+        nodesList.push(rainSource, rainFilter, thunderOsc, thunderLfo, thunderGain);
+
+      } else if (mode === 'ocean') {
+        // Ocean Tide Swells
+        const bufferSize = ctx.sampleRate * 2;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1; output[i] = (last + (0.02 * white)) / 1.02; last = output[i]; output[i] *= 1.5;
+        }
+        const waveSource = ctx.createBufferSource(); waveSource.buffer = noiseBuffer; waveSource.loop = true;
+        const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 500;
+        const waveLfo = ctx.createOscillator(); waveLfo.frequency.value = 0.12;
+        const waveGain = ctx.createGain(); waveGain.gain.value = 400;
+        waveLfo.connect(waveGain); waveGain.connect(filter.frequency);
+
+        waveSource.connect(filter); filter.connect(masterGain);
+        waveSource.start(); waveLfo.start();
+        nodesList.push(waveSource, filter, waveLfo, waveGain);
+
+      } else if (mode === 'wind') {
+        // Forest Wind Whispers
+        const bufferSize = ctx.sampleRate * 2;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * 0.05;
+        const windSource = ctx.createBufferSource(); windSource.buffer = noiseBuffer; windSource.loop = true;
+        const filter = ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 400; filter.Q.value = 3;
+        const lfo = ctx.createOscillator(); lfo.frequency.value = 0.2;
+        const lfoGain = ctx.createGain(); lfoGain.gain.value = 250;
+        lfo.connect(lfoGain); lfoGain.connect(filter.frequency);
+
+        windSource.connect(filter); filter.connect(masterGain);
+        windSource.start(); lfo.start();
+        nodesList.push(windSource, filter, lfo, lfoGain);
+
+      } else if (mode === 'campfire') {
+        // Campfire Crackle
+        const bufferSize = ctx.sampleRate * 2;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() > 0.98 ? (Math.random() * 2 - 1) * 0.3 : (Math.random() * 2 - 1) * 0.02;
+        }
+        const campSource = ctx.createBufferSource(); campSource.buffer = noiseBuffer; campSource.loop = true;
+        campSource.connect(masterGain);
+        campSource.start();
+        nodesList.push(campSource);
+
+      } else if (mode === 'brown') {
+        // Deep Brown Noise
+        const bufferSize = ctx.sampleRate * 2;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let lastOut = 0.0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1; output[i] = (lastOut + (0.02 * white)) / 1.02; lastOut = output[i]; output[i] *= 3.5;
+        }
+        const brownSource = ctx.createBufferSource(); brownSource.buffer = noiseBuffer; brownSource.loop = true;
+        brownSource.connect(masterGain);
+        brownSource.start();
+        nodesList.push(brownSource);
+
+      } else if (mode === 'pink') {
+        // Soft Pink Noise
+        const bufferSize = ctx.sampleRate * 2;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let b0=0, b1=0, b2=0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          output[i] = (b0 + b1 + b2) * 0.08;
+        }
+        const pinkSource = ctx.createBufferSource(); pinkSource.buffer = noiseBuffer; pinkSource.loop = true;
+        pinkSource.connect(masterGain);
+        pinkSource.start();
+        nodesList.push(pinkSource);
+      }
+
+      updateAudioUI();
+    }
+
+    function updateAudioUI() {
+      const badge = document.getElementById('sound-status-badge');
+      const modes = ['gym', 'sub', 'hardcore', 'ind_hum', 'gamma', 'alpha', 'lofi', 'solfeggio', 'choir', 'rain', 'thunder', 'ocean', 'wind', 'campfire', 'brown', 'pink'];
+
+      modes.forEach(m => {
+        const btn = document.getElementById(`sbtn-${m}`);
+        if (btn) {
+          if (currentAudioMode === m) {
+            btn.innerText = `Stop Playing`;
+            btn.classList.add('ring-2', 'ring-indigo-400');
+          } else {
+            btn.classList.remove('ring-2', 'ring-indigo-400');
+            if (m === 'gym') btn.innerText = 'Play Bass Pulse';
+            if (m === 'sub') btn.innerText = 'Play Sub Drone';
+            if (m === 'hardcore') btn.innerText = 'Play Hardcore Pump';
+            if (m === 'ind_hum') btn.innerText = 'Play Industrial Hum';
+            if (m === 'gamma') btn.innerText = 'Play 40Hz Gamma';
+            if (m === 'alpha') btn.innerText = 'Play 14Hz Alpha';
+            if (m === 'lofi') btn.innerText = 'Play Lo-Fi Drone';
+            if (m === 'solfeggio') btn.innerText = 'Play 528Hz Tone';
+            if (m === 'choir') btn.innerText = 'Play Choir Hum';
+            if (m === 'rain') btn.innerText = 'Play Soft Rain';
+            if (m === 'thunder') btn.innerText = 'Play Thunderstorm';
+            if (m === 'ocean') btn.innerText = 'Play Ocean Tide';
+            if (m === 'wind') btn.innerText = 'Play Forest Wind';
+            if (m === 'campfire') btn.innerText = 'Play Campfire';
+            if (m === 'brown') btn.innerText = 'Play Brown Noise';
+            if (m === 'pink') btn.innerText = 'Play Pink Noise';
+          }
+        }
+      });
+
+      if (currentAudioMode) {
+        badge.innerText = `Playing: ${currentAudioMode.toUpperCase()}`;
+        badge.className = "text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+      } else {
+        badge.innerText = "Status: Muted";
+        badge.className = "text-xs font-mono px-3 py-1 rounded-full bg-slate-950 text-slate-400 border border-slate-800";
+      }
+    }
+
+    // --- TIMER & SCRATCHPAD ---
+    let timerSeconds = 25 * 60;
+    let timerInterval = null;
+
+    function toggleTimer() {
+      const btn = document.getElementById('timer-toggle-btn');
+      const status = document.getElementById('timer-status');
+
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        btn.innerHTML = `<i class="fa-solid fa-play"></i> Start Session`;
+        status.innerText = "Paused";
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Session`;
+        status.innerText = "Deep Focus Active";
+        timerInterval = setInterval(() => {
+          timerSeconds--;
+          updateTimerDisplay();
+          if (timerSeconds <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            if (!isInspecting) {
+              const dayData = getDayData(activeDate);
+              dayData.studyMins = (dayData.studyMins || 0) + 25;
+              saveDb();
+            }
+            alert('Focus session complete! 25 minutes logged.');
+            timerSeconds = 25 * 60;
+            updateTimerDisplay();
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      timerSeconds = 25 * 60;
+      updateTimerDisplay();
+      document.getElementById('timer-toggle-btn').innerHTML = `<i class="fa-solid fa-play"></i> Start Session`;
+      document.getElementById('timer-status').innerText = "Ready for Deep Math & Physics";
+    }
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerSeconds / 60);
+      const secs = timerSeconds % 60;
+      document.getElementById('timer-display').innerText = 
+        `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function saveScratchpad() {
+      if (!isInspecting) {
+        localStorage.setItem('scratchpad_' + activeUser, document.getElementById('study-scratchpad').value);
+      }
+    }
+
+    // --- ANALYTICS CHART & DASHBOARD ---
+    function renderAnalyticsChart(range) {
+      const ctx = document.getElementById('analyticsChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      let labels = [];
+      let habitData = [];
+      let studyData = [];
+
+      const now = new Date();
+      let daysCount = range === 'weekly' ? 7 : (range === 'monthly' ? 30 : 365);
+
+      for (let i = daysCount - 1; i >= 0; i--) {
+        let d = new Date(now);
+        d.setDate(d.getDate() - i);
+        let dateStr = d.toISOString().split('T')[0];
+        
+        labels.push(range === 'yearly' ? d.toLocaleDateString('en-US', {month: 'short'}) : d.toLocaleDateString('en-US', {weekday: 'short', month: 'numeric', day: 'numeric'}));
+
+        let dayObj = dailyDb[dateStr];
+        if (dayObj) {
+          let habitsDone = Object.values(dayObj.habits || {}).filter(Boolean).length;
+          let habitPct = userHabits.length === 0 ? 0 : Math.round((habitsDone / userHabits.length) * 100);
+          habitData.push(habitPct);
+          studyData.push(dayObj.studyMins || 0);
+        } else {
+          habitData.push(0);
+          studyData.push(0);
+        }
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Habit Consistency (%)', data: habitData, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.15)', fill: true, tension: 0.3 },
+            { label: 'Study Time (Mins)', data: studyData, borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.15)', fill: true, tension: 0.3 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+          scales: {
+            x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { display: false } },
+            y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: '#1e293b' } }
+          }
+        }
+      });
+
+      document.getElementById('range-weekly').className = range === 'weekly' ? "px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white" : "px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+      document.getElementById('range-monthly').className = range === 'monthly' ? "px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white" : "px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+      document.getElementById('range-yearly').className = range === 'yearly' ? "px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white" : "px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+    }
+
+    function updateAnalyticsRange(range) {
+      renderAnalyticsChart(range);
+    }
+
+    function renderDashboard() {
+      const dayData = getDayData(activeDate);
+
+      // Namaz
+      const namazKeys = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'tahajjud'];
+      const namazDone = namazKeys.filter(k => (dayData.habits || {})[k]).length;
+      document.getElementById('dash-namaz-stat').innerText = `${namazDone}/6`;
+
+      // Habits
+      const totalHabits = userHabits.length;
+      const doneHabits = Object.values(dayData.habits || {}).filter(Boolean).length;
+      const pct = totalHabits === 0 ? 0 : Math.round((doneHabits / totalHabits) * 100);
+      document.getElementById('dash-habits-stat').innerText = `${pct}%`;
+
+      // Pelvic
+      const pelvicDone = Object.values(dayData.pelvic || {}).filter(Boolean).length;
+      document.getElementById('dash-pelvic-stat').innerText = `${pelvicDone}/4`;
+
+      // Study
+      document.getElementById('dash-study-stat').innerText = `${dayData.studyMins || 0}m`;
+
+      const savedScratch = localStorage.getItem('scratchpad_' + activeUser);
+      if (savedScratch) document.getElementById('study-scratchpad').value = savedScratch;
+    }
+
+    // --- INITIAL MOUNT ---
+    initAuth();
+  </script>
+</body>
+</html>
